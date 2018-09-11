@@ -26,6 +26,22 @@ func TestGetAttendance(t *testing.T) {
 	}
 }
 
+func TestGetAttendanceCountByDay(t *testing.T) {
+	events, err := GetAttendanceCountByDay()
+	if err != nil {
+		t.Error(err)
+	}
+	var hasAttendees bool
+	for _, e := range events {
+		if e.Attendees > 0 {
+			hasAttendees = true
+		}
+	}
+	if !hasAttendees {
+		t.Error("no event has attendees")
+	}
+}
+
 // func TestByDate(t *testing.T) {
 // 	// given a date should give 0 or more users
 // 	//give a date with no meeting should return nothing

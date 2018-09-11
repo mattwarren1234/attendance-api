@@ -29,8 +29,34 @@ type Attendance struct {
 
 // yay! yay!
 type Event struct {
-	Date time.Time
-	Name string
+	Date      time.Time
+	Name      string
+	Attendees int // optional field
+}
+
+func GetAttendanceCountByDay() ([]*Event, error) {
+	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var events []*Event
+	rows, err := db.Query("select name, date, count(attendance.member_id) from event join attendance on (attendance.event_id = event.event_id) group by name, date")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		e := Event{}
+		// something funky here where we overwrite the member info each time, but thats okay
+		if err := rows.Scan(&e.Name, &e.Date, &e.Attendees); err != nil {
+			return nil, err
+		}
+		events = append(events, &e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return events, nil
 }
 
 func GetAttendance(memberID int) (*Attendance, error) {
