@@ -9,11 +9,21 @@ func TestGetMembers(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_ = members
+	if len(members) == 0 {
+		t.Error("returned 0 members")
+	}
 }
 
-func GetFullList() {
+var SampleUserID = 0
 
+func TestGetAttendance(t *testing.T) {
+	attendance, err := GetAttendance(SampleUserID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(attendance.Events) == 0 {
+		t.Error("returned 0 members")
+	}
 }
 
 // func TestByDate(t *testing.T) {

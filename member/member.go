@@ -33,12 +33,30 @@ type Event struct {
 	Name string
 }
 
-func GetAttendance(id int) (Attendance, error) {
-	// get date whateverjoined name of the event
-	// err = db.Query("select * from attendance JOIN  where id=? ")
-	// to do : merge with whatever?
-	// yeah cuz the one thats a big mere ghouth
-	return Attendance{}, nil
+func GetAttendance(memberID int) (*Attendance, error) {
+	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	rows, err := db.Query("select first, last, email, phone, event.name, event.date from members join attendance on (members.member_id = attendance.member_id) join event on (attendance.event_id = event.event_id) where members.member_id=$1", memberID)
+	if err != nil {
+		return nil, err
+	}
+	attendance := new(Attendance)
+	defer rows.Close()
+	m := Member{}
+	for rows.Next() {
+		e := Event{}
+		// something funky here where we overwrite the member info each time, but thats okay
+		if err := rows.Scan(&m.First, &m.Last, &m.Email, &m.Phone, &e.Name, &e.Date); err != nil {
+			return nil, err
+		}
+		attendance.Events = append(attendance.Events, &e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return attendance, nil
 }
 
 // returns 100 most recent members
