@@ -5,10 +5,11 @@ import (
 )
 
 func TestGetMembers(t *testing.T) {
-	err := GetMembers()
+	members, err := GetMembers()
 	if err != nil {
 		t.Error(err)
 	}
+	_ = members
 }
 
 func GetFullList() {

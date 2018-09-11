@@ -3,7 +3,6 @@ package member
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 
 	_ "github.com/lib/pq"
@@ -42,21 +41,31 @@ func GetAttendance(id int) (Attendance, error) {
 	return Attendance{}, nil
 }
 
-func GetMembers() error {
+// returns 100 most recent members
+func GetMembers() ([]*Member, error) {
 	// connStr := "user=pqgotest dbname=pqgotest sslmode=verify-full"
 	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	m := Member{}
-	err = db.QueryRow("select first, last, email, phone from members limit 1").Scan(&m.First, &m.Last, &m.Email, &m.Phone)
-	// err = db.QueryRow("Select first, last, email, phone, event from members limit 1").Scan(&m.First, &m.Last, &m.Email, &m.Phone, &m.Event)
+	rows, err := db.Query("select first, last, email, phone from members order by member_id desc limit 100")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	fmt.Println("M IS", m)
-	return nil
+	var members []*Member
+	defer rows.Close()
+	for rows.Next() {
+		m := Member{}
+		if err := rows.Scan(&m.First, &m.Last, &m.Email, &m.Phone); err != nil {
+			return nil, err
+		}
+		members = append(members, &m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return members, nil
 }
 
 func All() error {
