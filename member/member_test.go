@@ -4,6 +4,27 @@ import (
 	"testing"
 )
 
+func TestGetMemberCtByDay(t *testing.T) {
+	eventCt, err := GetMembersByDay()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(eventCt) == 0 {
+		t.Error("0 events returned!")
+	}
+
+	// should be at least 1 day with valid ranges
+	var hasValidCount bool
+	for _, v := range eventCt {
+		if v.Attendees > 0 {
+			hasValidCount = true
+		}
+	}
+	if !hasValidCount {
+		t.Error("doesn't have any events with a valid count")
+	}
+}
+
 func TestGetMembers(t *testing.T) {
 	members, err := GetMembers()
 	if err != nil {

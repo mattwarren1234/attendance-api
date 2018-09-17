@@ -23,7 +23,7 @@ GetAttendance
 given a member id return that members attendance record
 GetAttendance(member_id)
 return []attendance list of events they attended
-
+DONE
 
 GetMembersByDay
 if valid date, return list of members
