@@ -5,7 +5,7 @@ import (
 )
 
 func TestGetMemberCtByDay(t *testing.T) {
-	eventCt, err := GetMembersByDay()
+	eventCt, err := GetMemberCtByDay()
 	if err != nil {
 		t.Error(err)
 	}
