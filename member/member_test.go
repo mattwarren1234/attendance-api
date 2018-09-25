@@ -16,7 +16,7 @@ func TestGetMemberCtByDay(t *testing.T) {
 	// should be at least 1 day with valid ranges
 	var hasValidCount bool
 	for _, v := range eventCt {
-		if v.Attendees > 0 {
+		if v.Attendees != nil && *v.Attendees > 0 {
 			hasValidCount = true
 		}
 	}
@@ -25,8 +25,8 @@ func TestGetMemberCtByDay(t *testing.T) {
 	}
 }
 
-func TestGetMembers(t *testing.T) {
-	members, err := GetMembers()
+func TestGetAll(t *testing.T) {
+	members, err := GetAll()
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,10 +37,13 @@ func TestGetMembers(t *testing.T) {
 
 var SampleUserID = 0
 
-func TestGetAttendance(t *testing.T) {
-	attendance, err := GetAttendance(SampleUserID)
+func TestGetAttendanceByID(t *testing.T) {
+	attendance, err := GetAttendanceByID(668)
 	if err != nil {
 		t.Error(err)
+	}
+	if attendance.Member.First == "" {
+		t.Error("member first name missing")
 	}
 	if len(attendance.Events) == 0 {
 		t.Error("returned 0 members")
@@ -54,7 +57,7 @@ func TestGetAttendanceCountByDay(t *testing.T) {
 	}
 	var hasAttendees bool
 	for _, e := range events {
-		if e.Attendees > 0 {
+		if e.Attendees != nil && *e.Attendees > 0 {
 			hasAttendees = true
 		}
 	}

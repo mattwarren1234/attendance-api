@@ -15,11 +15,11 @@ func ByDate(d time.Time) error {
 }
 
 type Member struct {
-	First string
-	Last  string
-	Email string
-	Phone string
-	Event string
+	ID    string `json:"id"`
+	First string `json:"first"`
+	Last  string `json:"last"`
+	Email string `json:"email"`
+	Phone string `json:"phone"`
 }
 
 type Attendance struct {
@@ -29,9 +29,9 @@ type Attendance struct {
 
 // yay! yay!
 type Event struct {
-	Date      time.Time
-	Name      string
-	Attendees int // optional field
+	Date      time.Time `json:"date"`
+	Name      string    `json:"name"`
+	Attendees *int      `json:"attendees, omitempty"` // optional field
 }
 
 // attendance count for each meeting date
@@ -85,12 +85,13 @@ func GetAttendanceCountByDay() ([]*Event, error) {
 	return events, nil
 }
 
-func GetAttendance(memberID int) (*Attendance, error) {
+func GetAttendanceByID(memberID int) (*Attendance, error) {
 	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
+		return nil, err
 	}
-	rows, err := db.Query("select first, last, email, phone, event.name, event.date from members join attendance on (members.member_id = attendance.member_id) join event on (attendance.event_id = event.event_id) where members.member_id=$1", memberID)
+	rows, err := db.Query("select members.member_id, first, last, email, phone, event.name, event.date from members left outer join attendance on (members.member_id = attendance.member_id) left outer join event on (attendance.event_id = event.event_id) where members.member_id=$1", memberID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,27 +100,35 @@ func GetAttendance(memberID int) (*Attendance, error) {
 	m := Member{}
 	for rows.Next() {
 		e := Event{}
+		var eventName *string
+		var eventDate *time.Time
+		// because we are doing a let outer join, we might get null fields
 		// something funky here where we overwrite the member info each time, but thats okay
-		if err := rows.Scan(&m.First, &m.Last, &m.Email, &m.Phone, &e.Name, &e.Date); err != nil {
+		if err := rows.Scan(&m.ID, &m.First, &m.Last, &m.Email, &m.Phone, &eventName, &eventDate); err != nil {
 			return nil, err
 		}
-		attendance.Events = append(attendance.Events, &e)
+		if eventName != nil && eventDate != nil {
+			e.Name = *eventName
+			e.Date = *eventDate
+			attendance.Events = append(attendance.Events, &e)
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	attendance.Member = m
 	return attendance, nil
 }
 
 // returns 100 most recent members
-func GetMembers() ([]*Member, error) {
+func GetAll() ([]*Member, error) {
 	// connStr := "user=pqgotest dbname=pqgotest sslmode=verify-full"
 	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rows, err := db.Query("select first, last, email, phone from members order by member_id desc limit 100")
+	rows, err := db.Query("select member_id, first, last, email, phone from members order by member_id desc limit 100")
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +136,7 @@ func GetMembers() ([]*Member, error) {
 	defer rows.Close()
 	for rows.Next() {
 		m := Member{}
-		if err := rows.Scan(&m.First, &m.Last, &m.Email, &m.Phone); err != nil {
+		if err := rows.Scan(&m.ID, &m.First, &m.Last, &m.Email, &m.Phone); err != nil {
 			return nil, err
 		}
 		members = append(members, &m)
