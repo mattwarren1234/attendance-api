@@ -4,7 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"net/http"
+	"strconv"
 
+	"github.com/labstack/echo"
 	_ "github.com/lib/pq"
 
 	"time"
@@ -60,7 +63,7 @@ func GetMemberCtByDay() ([]*Event, error) {
 	return events, nil
 }
 
-func GetAttendanceCountByDay() ([]*Event, error) {
+func attendanceCountByDay() ([]*Event, error) {
 	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
@@ -85,7 +88,7 @@ func GetAttendanceCountByDay() ([]*Event, error) {
 	return events, nil
 }
 
-func GetAttendanceByID(memberID int) (*Attendance, error) {
+func getAttendanceByID(memberID int) (*Attendance, error) {
 	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
@@ -120,8 +123,37 @@ func GetAttendanceByID(memberID int) (*Attendance, error) {
 	return attendance, nil
 }
 
+func GetAttendanceCountByDay(c echo.Context) error {
+	events, err := attendanceCountByDay()
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, events)
+}
+
+func GetAll(c echo.Context) error {
+	members, err := getAll()
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, members)
+}
+
+// func apiUser(c echo.Context) error {
+// 	// response is ?
+// 	response := []string{"some stuff"}
+// 	val := map[string]interface{}{
+// 		"user": response}
+// 	return c.JSON(http.StatusOK, val)
+// }
+
+// Handler
+func hello(c echo.Context) error {
+	return c.String(http.StatusOK, "Hello, World!")
+}
+
 // returns 100 most recent members
-func GetAll() ([]*Member, error) {
+func getAll() ([]*Member, error) {
 	// connStr := "user=pqgotest dbname=pqgotest sslmode=verify-full"
 	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
 	if err != nil {
@@ -147,6 +179,14 @@ func GetAll() ([]*Member, error) {
 	return members, nil
 }
 
-func All() error {
-	return errors.New("not implemented")
+func GetByID(c echo.Context) error {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return err
+	}
+	attendance, err := getAttendanceByID(id)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, attendance)
 }
