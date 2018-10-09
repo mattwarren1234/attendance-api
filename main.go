@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/mattwarren1234/attendance-api/auth"
 	"github.com/mattwarren1234/attendance-api/member"
 )
 
@@ -23,13 +24,19 @@ func main() {
 	}))
 	// Routes
 	e.GET("/", hello)
+
+	e.POST("/auth/login", auth.CreateToken)
 	// e.GET("/api/user", apiUser)
 
-	g := e.Group("/members")
-	g.GET("/", member.GetAll)
-	g.GET("/:id/", member.GetByID)
-	eventGroup := e.Group("/events")
-	eventGroup.GET("/", member.GetAttendanceCountByDay)
+	e.GET("/members/", member.GetAll)
+	e.GET("/members/:id/", member.GetByID)
+	e.GET("/events/", member.GetAttendanceCountByDay)
+	// g := e.Group("/members")
+	// g.GET("/", member.GetAll)
+	// g.GET("/:id/", member.GetByID)
+
+	// eventGroup := e.Group("/events")
+	// eventGroup.GET("/", member.GetAttendanceCountByDay)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))

@@ -147,11 +147,6 @@ func GetAll(c echo.Context) error {
 // 	return c.JSON(http.StatusOK, val)
 // }
 
-// Handler
-func hello(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello, World!")
-}
-
 // returns 100 most recent members
 func getAll() ([]*Member, error) {
 	// connStr := "user=pqgotest dbname=pqgotest sslmode=verify-full"
