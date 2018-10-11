@@ -79,6 +79,7 @@ func CreateToken(c echo.Context) error {
 	if error != nil {
 		fmt.Println(error)
 	}
+	fmt.Println("token is ", tokenString)
 	return c.JSON(http.StatusOK, JwtToken{Token: tokenString})
 }
 
@@ -116,39 +117,56 @@ func SampleEndpoint(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
-func Validate(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		if err := next(c); err != nil {
-			c.Error(err)
+func skipAuth(unprotectedPaths []string, c echo.Context) bool {
+	for _, v := range unprotectedPaths {
+		if c.Path() == v {
+			return true
 		}
-		authorizationHeader := c.Request().Header.Get("authentication")
-		if authorizationHeader == "" {
-			// to do : return 401
-			return errors.New("Auth Header empty")
-		}
-		var j JwtToken
-		err := json.Unmarshal([]byte(authorizationHeader), &j)
-		if err != nil {
-			fmt.Println("parse err is", err)
-			return err
-		}
-		fmt.Println("here HERE HERE")
-		token, err := jwt.Parse(j.Token, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("There was an error")
-			}
-			return []byte(secret), nil
-		})
-		fmt.Println("token.cal", token.Claims, "err is", err)
-		if err != nil {
-			return err
-		}
-		if token.Valid {
-			c.Set("decoded", token.Claims)
-		} else {
-			return errors.New("Invalid authorization token")
-		}
-		return nil
+	}
+	return false
+}
 
+func Validate(unprotectedPaths []string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if skipAuth(unprotectedPaths, c) {
+				return next(c)
+			}
+			authorizationHeader := c.Request().Header.Get("Authorization")
+			if authorizationHeader == "" {
+
+				// to do : return 401
+				// return errors.New("Auth Header empty")
+				return c.String(http.StatusUnauthorized, "Auth Header empty")
+			}
+			var j JwtToken
+			err := json.Unmarshal([]byte(authorizationHeader), &j)
+			if err != nil {
+				// fmt.Println("parse err is", err)
+				// return err
+				return c.String(http.StatusUnauthorized, err.Error())
+			}
+			fmt.Println("checking for", j.Token)
+			token, err := jwt.Parse(j.Token, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("There was an error")
+				}
+				return []byte(secret), nil
+			})
+			if err != nil {
+				// return err
+				return c.String(http.StatusUnauthorized, err.Error())
+			}
+			if token.Valid {
+				c.Set("decoded", token.Claims)
+			} else {
+				return c.String(http.StatusUnauthorized, "Invalid authorization token")
+			}
+			if err := next(c); err != nil {
+				c.Error(err)
+			}
+			return nil
+
+		}
 	}
 }

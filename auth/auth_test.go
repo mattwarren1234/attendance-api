@@ -57,15 +57,15 @@ func Test3(t *testing.T) {
 	if err := CreateToken(c); err != nil {
 		t.Error(err)
 	}
-	e.Use(Validate)
+	// e.Use(Validate)
 	tokenString := rec.Body.String()
 	req = httptest.NewRequest(echo.POST, "/", nil)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	req.Header.Set("authentication", tokenString)
-	fmt.Println("ehader is ", req.Header.Get("authentication"))
+	req.Header.Set("Authorization", tokenString)
+	// fmt.Println("ehader is ", req.Header.Get("Authorization"))
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
-	h := Validate(func(c echo.Context) error {
+	h := Validate(nil)(func(c echo.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 	err := h(c)

@@ -2,10 +2,12 @@ package member
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo"
 	_ "github.com/lib/pq"
@@ -39,7 +41,7 @@ type Event struct {
 
 // attendance count for each meeting date
 func GetMemberCtByDay() ([]*Event, error) {
-	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
+	db, err := getDB()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -64,7 +66,7 @@ func GetMemberCtByDay() ([]*Event, error) {
 }
 
 func attendanceCountByDay() ([]*Event, error) {
-	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
+	db, err := getDB()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,8 +90,20 @@ func attendanceCountByDay() ([]*Event, error) {
 	return events, nil
 }
 
+var _db *sql.DB
+
+func getDB() (*sql.DB, error) {
+	if _db == nil {
+		var err error
+		_db, err = sql.Open("postgres", "dbname=surj sslmode=disable")
+		return _db, err
+	} else {
+		return _db, nil
+	}
+}
+
 func getAttendanceByID(memberID int) (*Attendance, error) {
-	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
+	db, err := getDB()
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
@@ -150,7 +164,7 @@ func GetAll(c echo.Context) error {
 // returns 100 most recent members
 func getAll() ([]*Member, error) {
 	// connStr := "user=pqgotest dbname=pqgotest sslmode=verify-full"
-	db, err := sql.Open("postgres", "dbname=surj sslmode=disable")
+	db, err := getDB()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -172,6 +186,51 @@ func getAll() ([]*Member, error) {
 		return nil, err
 	}
 	return members, nil
+}
+
+func CreateEvent(c echo.Context) error {
+	// given a list of user ids, an event name, and a date,
+	// 1. insert name and date into events table, returning id
+	// 2. insert into attendance the member ids and the event id
+	db, err := getDB()
+	if err != nil {
+		return err
+	}
+	// {
+	//  memberIDs : ["id1, id2"]
+	//	date: someDate,
+	//	name: someName,
+	// }
+	memberIDString := c.FormValue("memberIDs")
+	date := c.FormValue("date")
+	name := c.FormValue("name")
+	if name == "" {
+		return errors.New("missing name")
+	}
+	if date == "" {
+		return errors.New("missing date")
+	}
+	if memberIDString == "" {
+		return errors.New("missing memberIDString")
+	}
+	layout := "2014-09-12"
+	parsedDate, err := time.Parse(layout, date)
+	if err != nil {
+		return err
+	}
+	var memberIDs []string
+	err = json.Unmarshal([]byte(memberIDString), &memberIDs)
+	if err != nil {
+		return err
+	}
+	var eventID string
+	err = db.QueryRow("insert into event(date, name) values($1, $2) returning event_id", parsedDate, name).Scan(&eventID)
+	if err != nil {
+		return err
+	}
+	formatted := strings.Join(memberIDs, ",")
+	_, err = db.Exec("insert into attendance(event_id, member_d) values ($1, UNNEST(ARRAY[$2]))", eventID, formatted)
+	return err
 }
 
 func GetByID(c echo.Context) error {

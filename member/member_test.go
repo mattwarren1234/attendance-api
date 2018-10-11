@@ -1,8 +1,33 @@
 package member
 
 import (
+	"fmt"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
+	"strings"
 	"testing"
+
+	"github.com/labstack/echo"
 )
+
+func TestCreateEvent(t *testing.T) {
+	v := url.Values{}
+	v.Set("name", "testname")
+	v.Set("date", "somedate")
+	v.Set("memberIDs", "1,2,2")
+	fmt.Println("encoded is ", v.Encode())
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(echo.POST, "/", strings.NewReader(v.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
+	e := echo.New()
+	c := e.NewContext(req, rec)
+	err := CreateEvent(c)
+	if err != nil {
+		t.Error(err)
+	}
+}
 
 func TestGetMemberCtByDay(t *testing.T) {
 	eventCt, err := GetMemberCtByDay()
@@ -26,7 +51,7 @@ func TestGetMemberCtByDay(t *testing.T) {
 }
 
 func TestGetAll(t *testing.T) {
-	members, err := GetAll()
+	members, err := getAll()
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,7 +63,7 @@ func TestGetAll(t *testing.T) {
 var SampleUserID = 0
 
 func TestGetAttendanceByID(t *testing.T) {
-	attendance, err := GetAttendanceByID(668)
+	attendance, err := getAttendanceByID(668)
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,7 +76,7 @@ func TestGetAttendanceByID(t *testing.T) {
 }
 
 func TestGetAttendanceCountByDay(t *testing.T) {
-	events, err := GetAttendanceCountByDay()
+	events, err := attendanceCountByDay()
 	if err != nil {
 		t.Error(err)
 	}
